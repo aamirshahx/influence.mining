@@ -26,14 +26,13 @@ setup <- function(logging=TRUE) {
 #' @import logging igraph
 #' @export
 influence <- function(graph, budget=1, prob=0.5, steps=1, optimal_solution=FALSE,
-                      test_method=c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC"),
+                      test_method=c("RESILIENCE"), #, "INFLUENCE_LT", "INFLUENCE_IC"
                       heuristic=c("GREEDY", "PAGERANK", "COLLECTIVE_INFLUENCE", "CORENESS", "CENTRALITY", "ADAPTIVE_CENTRALITY"),
                       centrality_method=c("DEGREE", "BETWEENNESS", "CLOSENESS", "EIGENVECTOR"),
                       parallel=TRUE, logging=TRUE) {
   output <- NULL
   if (logging) {
-    loginfo(paste("influence function parameters: graph_size=", vcount(graph), ", budget=", budget, ", prob=", prob,
-                  ", steps=", steps, ", test_method=", test_method, ", parallel=", parallel, ", optimal_solution=", optimal_solution, sep=''))
+    loginfo(paste0("influence function parameters: graph_size=", vcount(graph), ", budget=", budget, ", prob=", prob, ", steps=", steps, ", test_method=", test_method, ", parallel=", parallel, ", optimal_solution=", optimal_solution))
   }
   if (optimal_solution) {
     output <- optimal_influential(graph=graph, budget=budget, prob=prob, test_method=test_method, parallel=parallel)
@@ -47,9 +46,19 @@ influence <- function(graph, budget=1, prob=0.5, steps=1, optimal_solution=FALSE
     } else if (heuristic == "CORENESS") {
       output <- coreness_influential(graph=graph, budget=budget, test_method=test_method)
     } else if (heuristic == "CENTRALITY") {
-      output <- centrality_influential(graph=graph, budget=budget, test_method=test_method, centrality_method=centrality_method)
+      if (centrality_method == "DEGREE") {
+        output <- centrality_influential(graph=graph, budget=budget, test_method=test_method, centrality_method="DEGREE")
+      } else if (centrality_method == "BETWEENNESS") {
+        output <- centrality_influential(graph=graph, budget=budget, test_method=test_method, centrality_method="BETWEENNESS")
+      }
     } else if (heuristic == "ADAPTIVE_CENTRALITY") {
-      output <- adaptive_centrality_influential(graph=graph, budget=budget, test_method=test_method, centrality_method=centrality_method)
+      if (centrality_method == "DEGREE") {
+        output <- adaptive_centrality_influential(graph=graph, budget=budget, test_method=test_method, centrality_method="DEGREE")
+      } else if (centrality_method == "BETWEENNESS") {
+        output <- adaptive_centrality_influential(graph=graph, budget=budget, test_method=test_method, centrality_method="BETWEENNESS")
+      }
+    } else if (heuristic == "ADAPTIVE_PAGERANK") {
+      output <- adaptive_pagerank_influential(graph=graph, budget=budget, test_method=test_method)
     }
   }
   if (logging) {
@@ -74,14 +83,21 @@ adaptive_centrality_influential <- function(graph, budget=1, test_method=c("RESI
   # Preserve original graph as this object will be overwritten
   g <- graph
   V(graph)$name <- V(graph)
-  influential_nodes <- NULL
+
+  inf <- NULL
+  influential <- vector()
+  influence <- vector()
   # Calculate the actual number of nodes to select
   for (i in 1:budget) {
     # Get the node with highest score
     max_node <- which.max(get_centrality_scores(g, centrality_method=centrality_method))
-    influential_nodes <- c(influential_nodes, V(g)[max_node]$name)
+    inf <- c(inf, V(g)[max_node]$name)
     g <- delete.vertices(g, max_node)
     g <- largest_component(g)
+
+    influential <- c(influential, V(graph)[as.numeric(inf)])
+    influence <- c(influence, get_influence(graph, influential, test_method=test_method))
+
     # Break if the graph is already disconnected
     if (vcount(g) == 1) {
       break
@@ -89,8 +105,8 @@ adaptive_centrality_influential <- function(graph, budget=1, test_method=c("RESI
   }
   end <- as.numeric(Sys.time())
   output <- NULL
-  output$influential_nodes <- V(graph)[as.numeric(influential_nodes)]
-  output$influence <- get_influence(graph, output$influential_nodes, test_method=test_method)
+  output$influential_nodes <- influential
+  output$influence <- influence
   output$time <- (end - start)
   output
 }
@@ -117,11 +133,18 @@ centrality_influential <- function(graph, budget=1, test_method=c("RESILIENCE", 
   x <- data.frame(centrality=centrality)
   x$node_id <- rownames(x)
   # Get budget nodes
-  influential <- tail(x[order(x$centrality),], budget)$node_id
+  influential <- vector()
+  influence <- vector()
+
+  for (i in 1:budget) {
+    inf <- tail(x[order(x$centrality),], i)$node_id
+    influential <- c(influential, V(graph)[as.numeric(inf)])
+    influence <- c(influence, get_influence(graph, influential, test_method=test_method))
+  }
   end <- as.numeric(Sys.time())
   output <- NULL
-  output$influential_nodes <- V(graph)[as.numeric(influential)]
-  output$influence <- get_influence(graph, output$influential_nodes, test_method=test_method)
+  output$influential_nodes <- influential
+  output$influence <- influence
   output$time <- (end - start)
   output
 }
@@ -142,11 +165,20 @@ collective_influence_influential <- function(graph, budget=1, test_method=c("RES
   x <- data.frame(ci=ci)
   x$node_id <- rownames(x)
   # Get budget nodes
-  influential <- tail(x[order(x$ci),], budget)$node_id
+
+  influencial_nodes <- vector()
+  influence <- vector()
+
+  for (i in 1:budget) {
+    inf <- tail(x[order(x$ci),], i)$node_id
+    influencial_nodes <- c(influencial_nodes, V(graph)[as.numeric(inf)])
+    influence <- c(influence, get_influence(graph, influencial_nodes, test_method=test_method))
+  }
+
   end <- as.numeric(Sys.time())
   output <- NULL
-  output$influential_nodes <- V(graph)[as.numeric(influential)]
-  output$influence <- get_influence(graph, output$influential_nodes, test_method=test_method)
+  output$influential_nodes <- influencial_nodes
+  output$influence <- influence
   output$time <- (end - start)
   output
 }
@@ -164,14 +196,58 @@ pagerank_influential <- function(graph, budget=1, test_method=c("RESILIENCE", "I
   start <- as.numeric(Sys.time())
   # Get Pagerank of all nodes
   pagerank <- page_rank(graph)$vector
-  x <- data.frame(pagerank=pagerank)
-  x$node_id <- rownames(x)
   # Get budget nodes
-  influential <- tail(x[order(x$pagerank),], budget)$node_id
+  influential <- NULL
+  influence <- NULL
+  for(i in 1:budget) {
+    x <- data.frame(pagerank=pagerank)
+    x$node_id <- rownames(x)
+    inf <- tail(x[order(x$pagerank),], i)$node_id
+    influential[i] <- V(graph)[as.numeric(inf)] # influential nodes
+    influence[i] <- get_influence(graph, influential, test_method=test_method) # size of the biggest giant component
+  }
   end <- as.numeric(Sys.time())
   output <- NULL
-  output$influential_nodes <- V(graph)[as.numeric(influential)]
-  output$influence <- get_influence(graph, output$influential_nodes, test_method=test_method)
+  output$influential_nodes <- influential
+  output$influence <- influence
+  output$time <- (end - start)
+  output
+}
+
+#' @title Returns the most influential nodes in a graph using Pagerank heuristic
+#' @name pagerank_influential
+#' @param graph is the igraph object
+#' @param budget number of influential nodes to be fetched. Default value is 1
+#' @param test_method specifies the method to measure influence. Value MUST be "RESILIENCE", "INFLUENCE_IC" or "INFLUENCE_LT"
+#' @return object containing: 1. Vector of influential nodes. 2. Measure of influence. 3. Elapsed time in seconds.
+#' @import igraph utils
+#' @export
+#' @references Page, L., Brin, S., Motwani, R., & Winograd, T. (1999). The PageRank Citation Ranking: Bringing Order to the Web.
+adaptive_pagerank_influential <- function(graph, budget=1, test_method=c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC"), centrality_method=c("DEGREE", "BETWEENNESS", "CLOSENESS", "EIGENVECTOR")) {
+  start <- as.numeric(Sys.time())
+  # Get Pagerank of all nodes
+  # Get budget nodes
+  g <- graph
+  influential <- vector()
+  influence <- vector()
+  for(i in 1:budget) {
+    pagerank <- page_rank(g)$vector
+    x <- data.frame(pagerank=pagerank)
+
+    max_node <- which.max(get_centrality_scores(g, centrality_method=centrality_method))
+
+    x$node_id <- rownames(x)
+    inf <- tail(x[order(x$pagerank),], i)$node_id
+    g <- delete.vertices(g, max_node)
+    g <- largest_component(g)
+
+    influential <- c(influential, V(graph)[as.numeric(inf)])
+    influence <- c(influence, get_influence(graph, influential, test_method=test_method))
+  }
+  end <- as.numeric(Sys.time())
+  output <- NULL
+  output$influential_nodes <- influential
+  output$influence <- influence
   output$time <- (end - start)
   output
 }
@@ -189,19 +265,63 @@ coreness_influential <- function(graph, budget=1, test_method=c("RESILIENCE", "I
   start <- as.numeric(Sys.time())
   # Get coreness of all nodes
   coreness <- graph.coreness(graph, mode="all")
+
+  print('coreness')
+  print(coreness)
+
+  influential_nodes <- vector()
+  influence <- vector()
+
   # Get most core nodes
-  influential <- V(graph)[which(coreness == max(coreness))]
-  # If the number exceeds the given budget, then pick top degree nodes within influential
-  if (length(influential) > budget) {
-    x <- data.frame(degree=degree(graph, influential))
-    x$node_id <- rownames(x)
-    # Get budget nodes
-    influential <- tail(x[order(x$degree),], budget)$node_id
+  for (i in 1:budget) {
+    inf <- V(graph)[which(coreness == max(coreness))]
+    # If the number exceeds the given budget, then pick top degree nodes within influential
+    if (length(inf) > i) {
+      x <- data.frame(degree=degree(graph, inf))
+      x$node_id <- rownames(x)
+      # Get budget nodes
+      inf <- tail(x[order(x$degree),], i)$node_id
+    }
+    influential_nodes <- c(influential_nodes, V(graph)[as.numeric(inf)])
+    influence <- c(influence, get_influence(graph, output$influential_nodes, test_method=test_method))
   }
   end <- as.numeric(Sys.time())
   output <- NULL
-  output$influential_nodes <- V(graph)[as.numeric(influential)]
-  output$influence <- get_influence(graph, output$influential_nodes, test_method=test_method)
+  output$influential_nodes <- influential_nodes
+  output$influence <- influence
+  output$time <- (end - start)
+  output
+}
+
+#' @title Returns the most influential nodes in a graph using Coreness heuristic
+#' @name coreness_influential
+#' @param graph is the igraph object
+#' @param budget number of influential nodes to be fetched. Default value is 1
+#' @param test_method specifies the method to measure influence. Value MUST be "RESILIENCE", "INFLUENCE_IC" or "INFLUENCE_LT"
+#' @return object containing: 1. Vector of influential nodes. 2. Measure of influence. 3. Elapsed time in seconds.
+#' @import igraph utils
+#' @export
+#' @references Zhang, X., Zhu, J., Wang, Q., & Zhao, H. (2013). Identifying influential nodes in complex networks with community structure. Knowledge-Based Systems, 42.
+coreness_degree_influential <- function(graph, budget=1, test_method=c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC")) {
+  start <- as.numeric(Sys.time())
+  # Get coreness of all nodes
+  coreness <- graph.coreness(graph, mode="all")
+
+  influential_nodes <- vector()
+  influence <- vector()
+
+  # Get most core nodes
+  for (i in 1:budget) {
+    inf <- V(graph)[which(coreness == max(coreness))]
+    max_node <- which.max(get_centrality_scores(g, centrality_method=centrality_method))
+    inf <- c(inf, V(g)[max_node]$name)
+    influential_nodes <- c(influential_nodes, V(graph)[as.numeric(inf)])
+    influence <- c(influence, get_influence(graph, output$influential_nodes, test_method=test_method))
+  }
+  end <- as.numeric(Sys.time())
+  output <- NULL
+  output$influential_nodes <- influential_nodes
+  output$influence <- influence
   output$time <- (end - start)
   output
 }
@@ -222,12 +342,17 @@ greedy_influential <- function(graph, budget, prob=0.5, test_method) {
   # Save list of nodes
   nodes <- V(graph)
   influence <- 0
+  output <- NULL
   seed <- NULL
+  index <- 0
+  #biggest_component = c()
+  #no_of_nodes_removed = c()
   while (length(seed) < budget) {
     max_influence <- 0
     most_influential <- NULL
     current <- NULL
     # For all nodes except seed
+    #print(setdiff(nodes, seed))
     for (node in setdiff(nodes, seed)) {
       # Find infuence of node with existing nodes in seed
       current <- get_influence(graph, c(seed, node), test_method, lt_threshold=prob)
@@ -238,13 +363,18 @@ greedy_influential <- function(graph, budget, prob=0.5, test_method) {
       }
     }
     # At the end, we should have node with maximum influence to add to influential_nodes
+    #biggest_component[index] = max_influence
+    #no_of_nodes_removed[index] = length(seed)
+    #index <- index + 1
     seed <- c(seed, most_influential)
   }
   end <- as.numeric(Sys.time())
-  output <- NULL
+  #output <- NULL
   output$influential_nodes <- V(graph)[seed]
   output$time <- (end - start)
   output$influence <- get_influence(graph, output$influential_nodes, test_method=test_method, lt_threshold=prob)
+  #output$biggest_component <- biggest_component
+  #output$no_of_nodes_removed <- no_of_nodes_removed
   output
 }
 
