@@ -11,20 +11,20 @@ printOutput <- function(name, output) {
 #' @return igraph object
 #' @import igraph
 #' @export
-load_city_network_graph <- function() {
-  largest_component(graph.data.frame(read.table("dataset/city_network"), directed=FALSE))
-}
-
-graph <- load_city_network_graph()
+# load_city_network_graph <- function() {
+#   largest_component(graph.data.frame(read.table("dataset/city_network"), directed=FALSE))
+# }
+#
+# graph <- load_city_network_graph()
 
 load_city_network_graph_nodes <- function() {
   largest_component(read.graph("dataset/city_network_nodes", directed=FALSE))
 }
 
-graph2 <- load_city_network_graph_nodes()
+graph <- load_city_network_graph_nodes()
 
 generateOutput <- function(output, name, test, centrality) {
-  printOutput("name", output)
+  printOutput(name, output)
   ranking <- paste0("dataset/project/", tolower(name), "-", tolower(test), "-", tolower(centrality), '-', 'ranking', ".txt")
   node_rank <- NULL
   for (node in output$influential_nodes) {
@@ -45,10 +45,10 @@ generateOutput <- function(output, name, test, centrality) {
 }
 
 
-budget <- 5
+budget <- 3
 # budget <- 25
 
-# DEG
+#DEG
 output_centrality_degree <- centrality_influential(graph2, budget = budget, test_method = "RESILIENCE", centrality_method = "DEGREE")
 generateOutput(output_centrality_degree, "centrality", "RESILIENCE", "DEGREE")
 
@@ -76,19 +76,16 @@ generateOutput(output_adaptive_pagerank_betweenness, "adaptive_pagerank", "RESIL
 output_collective_influence <- collective_influence_influential(graph=graph2, budget=budget, test_method="RESILIENCE")
 generateOutput(output_collective_influence, "collective_influence", "RESILIENCE", "")
 
-#CORE-HD | K-Core
+#K-Core
 output_coreness_influential <- coreness_influential(graph=graph2, budget=budget, test_method="RESILIENCE")
 generateOutput(output_coreness_influential, "coreness_influential", "RESILIENCE", "")
 
-# TODO: ASK SIR TO VERIFY (I think the original algo ^ is K-Core + DEGI)
-#CORE-HD | K-CORE + DEGI
-output_coreness_degree_influential <- coreness_degree_influential(graph=graph2, budget=budget, test_method="RESILIENCE")
-generateOutput(output_coreness_degree_influential, "coreness_degree_influential", "RESILIENCE", "")
-
-#AB
+#CORE-HD (K-CORE + DEGI)
+output_core_hd <- core_hd(graph, budget = budget, test_method = "RESILIENCE")
+generateOutput(output_core_hd, "corehd", "RESILIENCE", "")
 
 #GND
+output_gnd <- gnd(graph, budget = budget, test_method = "RESILIENCE")
+generateOutput(output_gnd, "GND", "RESILIENCE", "")
 
 #ND
-
-#KSH

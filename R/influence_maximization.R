@@ -130,6 +130,7 @@ centrality_influential <- function(graph, budget=1, test_method=c("RESILIENCE", 
   start <- as.numeric(Sys.time())
   # Get Collective influence score of all nodes
   centrality <- get_centrality_scores(graph, centrality_method=centrality_method)
+
   x <- data.frame(centrality=centrality)
   x$node_id <- rownames(x)
   # Get budget nodes
@@ -266,9 +267,6 @@ coreness_influential <- function(graph, budget=1, test_method=c("RESILIENCE", "I
   # Get coreness of all nodes
   coreness <- graph.coreness(graph, mode="all")
 
-  print('coreness')
-  print(coreness)
-
   influential_nodes <- vector()
   influence <- vector()
 
@@ -283,7 +281,7 @@ coreness_influential <- function(graph, budget=1, test_method=c("RESILIENCE", "I
       inf <- tail(x[order(x$degree),], i)$node_id
     }
     influential_nodes <- c(influential_nodes, V(graph)[as.numeric(inf)])
-    influence <- c(influence, get_influence(graph, output$influential_nodes, test_method=test_method))
+    influence <- c(influence, get_influence(graph, influential_nodes, test_method=test_method))
   }
   end <- as.numeric(Sys.time())
   output <- NULL
@@ -340,8 +338,8 @@ coreness_degree_influential <- function(graph, budget=1, test_method=c("RESILIEN
 greedy_influential <- function(graph, budget, prob=0.5, test_method) {
   start <- as.numeric(Sys.time())
   # Save list of nodes
-  nodes <- V(graph)
   influence <- 0
+  nodes <- V(graph)
   output <- NULL
   seed <- NULL
   index <- 0
@@ -369,12 +367,9 @@ greedy_influential <- function(graph, budget, prob=0.5, test_method) {
     seed <- c(seed, most_influential)
   }
   end <- as.numeric(Sys.time())
-  #output <- NULL
   output$influential_nodes <- V(graph)[seed]
   output$time <- (end - start)
   output$influence <- get_influence(graph, output$influential_nodes, test_method=test_method, lt_threshold=prob)
-  #output$biggest_component <- biggest_component
-  #output$no_of_nodes_removed <- no_of_nodes_removed
   output
 }
 
@@ -938,4 +933,145 @@ h_index <- function(graph, node_id) {
   min_neighbour_degree <- min(neighbour_degrees)
   # If min_neighbour_degree is less than or equal to node_degree, then h-index is min_neighbour_degree, otherwise node_degree is h-index
   ifelse(min_neighbour_degree <= node_degree, min_neighbour_degree, node_degree)
+}
+
+# Calculate coreness on every iteration rather than just before the 1st iteration
+core_hd_core_repeat <- function(graph, budget=1, test_method=c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC")) {
+  start <- as.numeric(Sys.time())
+
+  V(graph)$name <- V(graph)
+  influential <- vector()
+  influence <- vector()
+
+  for (i in 1:budget) {
+    repeat {
+
+      # repeat coreness calculations to
+      # make sure we have `0` 1-core nodes
+
+      coreness <- graph.coreness(graph, mode="all")
+      min_core <- min(coreness)
+
+      if (min_core != 1) {
+        break
+      }
+      one_core <- V(graph)[which(coreness == min_core)]
+      graph <- delete.vertices(graph, one_core)
+    }
+
+    x <- data.frame(degree=degree(graph))
+    x$node_id <- rownames(x)
+    inf <- tail(x[order(x$degree),], i)$node_id
+
+    influential <- c(influential, V(graph)[as.numeric(inf)])
+    influence <- c(influence, get_influence(graph, influential, test_method=test_method))
+
+    graph <- delete.vertices(graph, inf)
+    graph <- largest_component(graph)
+
+    if (vcount(graph) == 1) {
+      break
+    }
+  }
+  end <- as.numeric(Sys.time())
+  output <- NULL
+  output$influential_nodes <- influential
+  output$influence <- influence
+  output$time <- (end - start)
+  output
+}
+
+core_hd <- function(graph, budget=1, test_method=c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC")) {
+  start <- as.numeric(Sys.time())
+
+  V(graph)$name <- V(graph)
+  influential <- vector()
+  influence <- vector()
+
+    repeat {
+
+      # repeat coreness calculations to
+      # make sure we have `0` 1-core nodes
+
+      coreness <- graph.coreness(graph, mode="all")
+      min_core <- min(coreness)
+
+      if (min_core != 1) {
+        break
+      }
+      one_core <- V(graph)[which(coreness == min_core)]
+      graph <- delete.vertices(graph, one_core)
+    }
+
+  for (i in 1:budget) {
+    x <- data.frame(degree=degree(graph))
+    x$node_id <- rownames(x)
+    inf <- tail(x[order(x$degree),], i)$node_id
+
+    influential <- c(influential, V(graph)[as.numeric(inf)])
+    influence <- c(influence, get_influence(graph, influential, test_method=test_method))
+
+    graph <- delete.vertices(graph, inf)
+    graph <- largest_component(graph)
+
+    if (vcount(graph) == 1) {
+      break
+    }
+  }
+  end <- as.numeric(Sys.time())
+  output <- NULL
+  output$influential_nodes <- influential
+  output$influence <- influence
+  output$time <- (end - start)
+  output
+}
+
+gnd <- function(graph, budget=1, test_method=c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC")) {
+  start <- as.numeric(Sys.time())
+
+  influence <- vector()
+  influential <- vector()
+
+
+  influentialNodes <- c(
+    c('497', '1239', '286', '212', '129', '866', '35'),
+    c('1348', '941', '1296', '94', '777', '1237', '904', '1230'),
+    c('32', '41', '1315', '256', '42', '243', '1137', '903', '12', '899', '1299', '1126', '1019', '318', '655', '333', '696', '1424', '122', '564', '833', '163', '217', '900')
+  )
+
+  budget_1 <- c('497', '1239', '286', '212', '129', '866', '35')
+  budget_2 <- c('1348', '941', '1296', '94', '777', '1237', '904', '1230')
+  budget_3 <- c('32', '41', '1315', '256', '42', '243', '1137', '903', '12', '899', '1299', '1126', '1019', '318', '655', '333', '696', '1424', '122', '564', '833', '163', '217', '900')
+
+  seed <- NULL
+  # nodes <- list(aa, bb, cc)
+  for (i in 1:budget) {
+    nodes <- NULL
+    if (i == 1) {
+      nodes <- budget_1
+    } else if (i == 2) {
+      nodes <- budget_2
+    } else if (i == 3) {
+      nodes <- budget_3
+    }
+
+    max_influence <- 0
+    most_influential <- NULL
+
+    for (i in seq_along(nodes)) {
+      current <- get_influence(graph, c(seed, nodes[i]), test_method, lt_threshold=prob)
+      if (current > max_influence) {
+        most_influential <- nodes[i]
+        max_influence <- current
+      }
+    }
+    seed <- c(seed, most_influential)
+  }
+
+  end <- as.numeric(Sys.time())
+  output <- NULL
+  output$influential_nodes <- V(graph)[as.numeric(seed)]
+  output$time <- (end - start)
+  output$influence <- get_influence(graph, output$influential_nodes, test_method=test_method, lt_threshold=prob)
+  output
 }

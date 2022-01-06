@@ -8,7 +8,7 @@ Output is as follows (per row): [accumulated deletion cost] [deleted node id] [s
 The randomness in the output comes from the code breaking ties by randomness. To make the output independent of the labeling of nodes.
 '''
 
-from sys import argv, stderr
+from sys import argv, stderr, exit
 import networkx as nx
 from networkx.algorithms.approximation import min_weighted_vertex_cover
 from scipy.sparse.linalg import eigsh
@@ -17,15 +17,14 @@ from scipy.sparse import diags
 import numpy as np
 from numpy.random import shuffle
 
-
 #  ======================================================================================================
-# caluclating the size of the largest connected component
+# calculating the size of the largest connected component
 
-def lcc(G):
+def largest_connected_component(G):
     if len(G) == 0:
         return 0
 
-    return max([len(c) for c in nx.connected_components(G)])
+    return max([len(connected_components) for connected_components in nx.connected_components(G)])
 
 
 #  ======================================================================================================
@@ -37,15 +36,13 @@ def remove_and_print_update(G, v):
     else:
         G.graph['cost sum'] += 1
     G.remove_node(v)
-    print('rpu')
-    print(str(G.graph['cost sum']), v, str(lcc(G)))
+    print(str(G.graph['cost sum']), v, str(largest_connected_component(G)))
 
 
 #  ======================================================================================================
 # path -> path of edgelist
 # cost -> degree, unit
-def gnd(path, cost):
-
+def gnd(path, cost, budget):
     G = nx.read_edgelist(path)
     G.graph['cost type'] = cost
     G.graph['cost sum'] = 0
@@ -54,22 +51,26 @@ def gnd(path, cost):
         print('usage: python gnd.py [adj file] [weight (degree or unit)]')
         exit(1)
 
-    print('0 -', str(lcc(G)))  # output before any nodes are deleted
-
-    while lcc(G) > 2:
+    inf = []
+    i = 0
+    while largest_connected_component(G) > 2 and i < budget:
+        localInf = []
+        if i > 0:
+            G = nx.Graph(G.subgraph(max(nx.connected_components(G), key=len)))
         # Step 1. === Construct the spectral partition of the largest connected component (LCC). ===
+
         LCC = G.subgraph(max(nx.connected_components(G), key=len))  # Get the LCC.
         ii = {v: i for i, v in enumerate(list(LCC.nodes()))}  # Store the node indices in the same order as LCC.
 
         # Construct the matrix. Notations following the paper. (We calculate the 2nd smallest eigenpair
-        # directly (by the solver) rather than "manually" shifting the eigenvalues and calcuate the 2nd
+        # directly (by the solver) rather than "manually" shifting the eigenvalues and calculate the 2nd
         # largest as mentioned in the paper.)
         if G.graph['cost type'] == 'degree':
-            W = diags([d for v, d in LCC.degree()], dtype=np.int32)
-            A = nx.adjacency_matrix(LCC)
-            B = A * W + W * A - A
+            W = diags([d for v, d in LCC.degree()], dtype=np.int32)  # weighted matrix
+            A = nx.adjacency_matrix(LCC)    # adjacency matrix
+            B = A * W + W * A - A           # B = AW + WA - A
             DB = diags(np.squeeze(np.asarray(B.sum(axis=1))), dtype=np.int32)
-            L = DB - B
+            L = DB - B                      # Lw = [Db - B]
         else:
             L = nx.laplacian_matrix(LCC)
 
@@ -100,21 +101,16 @@ def gnd(path, cost):
         cover = list(min_weighted_vertex_cover(H, weight='weight'))  # get the vertex cover
         shuffle(cover)  # shuffle away dependence on input
 
-        # Uncomment the following lines to follow the original code, but not the paper:
-        # if G.graph['cost type'] == 'degree':
-        #	cover.sort(key=LCC.degree())
-        # else:
-        #	cover.sort(key=LCC.degree(),reverse=True)
-
         # Step 4. === Delete the nodes in cover. ===
         for v in cover:
+            localInf.append(v)
             remove_and_print_update(G, v)
+        i = i + 1
+        inf.append(localInf)
 
-    # Step 5. === Deleting the (trivial) rest of the nodes ===
-    for v in [v for u, v in G.edges()]:  # half of the degree = 1 nodes
-        remove_and_print_update(G, v)
-    for v in list(G.nodes()):  # the rest are all isolates
-        remove_and_print_update(G, v)
+    print('final inf')
+    print(inf)
 
 #  ========================================================================================================
-gnd('../dataset/city_network_nodes', 'degree')
+gnd('../dataset/city_network_nodes', 'unit', 3)
+exit(0)
