@@ -11,17 +11,17 @@ printOutput <- function(name, output) {
 #' @return igraph object
 #' @import igraph
 #' @export
-# load_city_network_graph <- function() {
-#   largest_component(graph.data.frame(read.table("dataset/city_network"), directed=FALSE))
-# }
-#
-# graph <- load_city_network_graph()
-
-load_city_network_graph_nodes <- function() {
-  largest_component(read.graph("dataset/city_network_nodes", directed=FALSE))
+load_city_network_graph <- function() {
+  largest_component(graph.data.frame(read.table("dataset/city_network"), directed=FALSE))
 }
 
-graph <- load_city_network_graph_nodes()
+graph <- load_city_network_graph()
+
+# load_city_network_graph_nodes <- function() {
+#   largest_component(read.graph("dataset/city_network_nodes", directed=FALSE))
+# }
+#
+# graph2 <- load_city_network_graph_nodes()
 
 generateOutput <- function(output, name, test, centrality) {
   printOutput(name, output)
@@ -44,48 +44,49 @@ generateOutput <- function(output, name, test, centrality) {
   write(budget_gaint_component, file = giant_component, sep = ",",)
 }
 
-
-budget <- 3
+budget <- 25
 # budget <- 25
 
 #DEG
-output_centrality_degree <- centrality_influential(graph2, budget = budget, test_method = "RESILIENCE", centrality_method = "DEGREE")
-generateOutput(output_centrality_degree, "centrality", "RESILIENCE", "DEGREE")
-
-#DEGI
-output_adaptive_centrality_degree <- adaptive_centrality_influential(graph2, budget = budget, test_method = "RESILIENCE", centrality_method = "DEGREE")
-generateOutput(output_adaptive_centrality_degree, "adaptive_centrality", "RESILIENCE", "DEGREE")
-
-#B
-output_centrality_betweenness <- centrality_influential(graph2, budget = budget, test_method = "RESILIENCE", centrality_method = "BETWEENNESS")
-generateOutput(output_centrality_betweenness, "centrality", "RESILIENCE", "BETWEENNESS")
-
-#BI
-output_adaptive_centrality_betweenness <- adaptive_centrality_influential(graph2, budget = budget, test_method = "RESILIENCE", centrality_method = "BETWEENNESS")
-generateOutput(output_adaptive_centrality_betweenness, "adaptive_centrality", "RESILIENCE", "BETWEENNESS")
+# output_centrality_degree <- centrality_influential(graph, budget = budget, test_method = "RESILIENCE", centrality_method = "DEGREE")
+# generateOutput(output_centrality_degree, "centrality", "RESILIENCE", "DEGREE")
+#
+# #DEGI
+# output_adaptive_centrality_degree <- adaptive_centrality_influential(graph, budget = budget, test_method = "RESILIENCE", centrality_method = "DEGREE")
+# generateOutput(output_adaptive_centrality_degree, "adaptive_centrality", "RESILIENCE", "DEGREE")
+#
+# #B
+# output_centrality_betweenness <- centrality_influential(graph, budget = budget, test_method = "RESILIENCE", centrality_method = "BETWEENNESS")
+# generateOutput(output_centrality_betweenness, "centrality", "RESILIENCE", "BETWEENNESS")
+#
+# #BI
+# output_adaptive_centrality_betweenness <- adaptive_centrality_influential(graph, budget = budget, test_method = "RESILIENCE", centrality_method = "BETWEENNESS")
+# generateOutput(output_adaptive_centrality_betweenness, "adaptive_centrality", "RESILIENCE", "BETWEENNESS")
 
 #PageRank DEGI
-output_adaptive_pagerank_degree <- adaptive_pagerank_influential(graph2, budget = budget, test_method = "RESILIENCE", centrality_method = "DEGREE")
+output_adaptive_pagerank_degree <- adaptive_pagerank_influential(graph, budget = budget, test_method = "RESILIENCE", centrality_method = "DEGREE")
 generateOutput(output_adaptive_pagerank_degree, "adaptive_pagerank", "RESILIENCE", "BETWEENNESS")
 
-#PageRank BI
-output_adaptive_pagerank_betweenness <- adaptive_pagerank_influential(graph2, budget = budget, test_method = "RESILIENCE", centrality_method = "BETWEENNESS")
-generateOutput(output_adaptive_pagerank_betweenness, "adaptive_pagerank", "RESILIENCE", "BETWEENNESS")
+# #PageRank BI
+# output_adaptive_pagerank_betweenness <- adaptive_pagerank_influential(graph, budget = budget, test_method = "RESILIENCE", centrality_method = "BETWEENNESS")
+# generateOutput(output_adaptive_pagerank_betweenness, "adaptive_pagerank", "RESILIENCE", "BETWEENNESS")
 
 #CI
-output_collective_influence <- collective_influence_influential(graph=graph2, budget=budget, test_method="RESILIENCE")
-generateOutput(output_collective_influence, "collective_influence", "RESILIENCE", "")
+# output_collective_influence <- collective_influence_influential(graph=graph, budget=budget, test_method="RESILIENCE")
+# generateOutput(output_collective_influence, "collective_influence", "RESILIENCE", "")
 
-#K-Core
-output_coreness_influential <- coreness_influential(graph=graph2, budget=budget, test_method="RESILIENCE")
-generateOutput(output_coreness_influential, "coreness_influential", "RESILIENCE", "")
-
-#CORE-HD (K-CORE + DEGI)
-output_core_hd <- core_hd(graph, budget = budget, test_method = "RESILIENCE")
+# #CORE-HD (K-CORE + DEGI)
+output_core_hd <- core_hd(graph=graph, budget = budget, test_method = "RESILIENCE")
 generateOutput(output_core_hd, "corehd", "RESILIENCE", "")
 
-#GND
-output_gnd <- gnd(graph, budget = budget, test_method = "RESILIENCE")
+#K-Core
+output_coreness_influential <- coreness_influential(graph=graph, budget=budget, test_method="RESILIENCE")
+generateOutput(output_coreness_influential, "coreness_influential", "RESILIENCE", "")
+
+# #GND
+output_gnd <- gnd(graph=graph, budget = budget, test_method = "RESILIENCE")
 generateOutput(output_gnd, "GND", "RESILIENCE", "")
 
-#ND
+# #Local Centrality
+output_local_centrality <- collective_local_centrality(graph=graph, budget=budget, neighborhood_distance=3, test_method="RESILIENCE")
+generateOutput(output_local_centrality, "local_centrality", "RESILIENCE", "")

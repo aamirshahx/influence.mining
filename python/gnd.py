@@ -111,6 +111,7 @@ def gnd(path, cost, budget):
     print('final inf')
     print(inf)
 
+
 #  ========================================================================================================
-gnd('../dataset/city_network_nodes', 'unit', 3)
+gnd('../dataset/city_network', 'unit', 25)
 exit(0)

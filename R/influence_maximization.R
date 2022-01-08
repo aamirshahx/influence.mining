@@ -3,10 +3,10 @@
 #' @description This function should be called before any other
 #' @param logging flag to enable loggging. Default is TRUE
 #' @import logging
-setup <- function(logging=TRUE) {
+setup <- function(logging = TRUE) {
   if (logging) {
     basicConfig()
-    addHandler(writeToFile, logger="influence_maximization", file="output.log")
+    addHandler(writeToFile, logger = "influence_maximization", file = "output.log")
   }
 }
 
@@ -25,40 +25,40 @@ setup <- function(logging=TRUE) {
 #' @return object containing: 1. Vector of influential nodes. 2. Measure of influence. 3. Elapsed time in seconds.
 #' @import logging igraph
 #' @export
-influence <- function(graph, budget=1, prob=0.5, steps=1, optimal_solution=FALSE,
-                      test_method=c("RESILIENCE"), #, "INFLUENCE_LT", "INFLUENCE_IC"
-                      heuristic=c("GREEDY", "PAGERANK", "COLLECTIVE_INFLUENCE", "CORENESS", "CENTRALITY", "ADAPTIVE_CENTRALITY"),
-                      centrality_method=c("DEGREE", "BETWEENNESS", "CLOSENESS", "EIGENVECTOR"),
-                      parallel=TRUE, logging=TRUE) {
+influence <- function(graph, budget = 1, prob = 0.5, steps = 1, optimal_solution = FALSE,
+                      test_method = c("RESILIENCE"), #, "INFLUENCE_LT", "INFLUENCE_IC"
+                      heuristic = c("GREEDY", "PAGERANK", "COLLECTIVE_INFLUENCE", "CORENESS", "CENTRALITY", "ADAPTIVE_CENTRALITY"),
+                      centrality_method = c("DEGREE", "BETWEENNESS", "CLOSENESS", "EIGENVECTOR"),
+                      parallel = TRUE, logging = TRUE) {
   output <- NULL
   if (logging) {
     loginfo(paste0("influence function parameters: graph_size=", vcount(graph), ", budget=", budget, ", prob=", prob, ", steps=", steps, ", test_method=", test_method, ", parallel=", parallel, ", optimal_solution=", optimal_solution))
   }
   if (optimal_solution) {
-    output <- optimal_influential(graph=graph, budget=budget, prob=prob, test_method=test_method, parallel=parallel)
+    output <- optimal_influential(graph = graph, budget = budget, prob = prob, test_method = test_method, parallel = parallel)
   } else {
     if (heuristic == "GREEDY") {
-      output <- greedy_influential(graph=graph, budget=budget, test_method=test_method, prob=prob)
+      output <- greedy_influential(graph = graph, budget = budget, test_method = test_method, prob = prob)
     } else if (heuristic == "PAGERANK") {
-      output <- pagerank_influential(graph=graph, budget=budget, test_method=test_method)
+      output <- pagerank_influential(graph = graph, budget = budget, test_method = test_method)
     } else if (heuristic == "COLLECTIVE_INFLUENCE") {
-      output <- collective_influence_influential(graph=graph, budget=budget, test_method=test_method)
+      output <- collective_influence_influential(graph = graph, budget = budget, test_method = test_method)
     } else if (heuristic == "CORENESS") {
-      output <- coreness_influential(graph=graph, budget=budget, test_method=test_method)
+      output <- coreness_influential(graph = graph, budget = budget, test_method = test_method)
     } else if (heuristic == "CENTRALITY") {
       if (centrality_method == "DEGREE") {
-        output <- centrality_influential(graph=graph, budget=budget, test_method=test_method, centrality_method="DEGREE")
+        output <- centrality_influential(graph = graph, budget = budget, test_method = test_method, centrality_method = "DEGREE")
       } else if (centrality_method == "BETWEENNESS") {
-        output <- centrality_influential(graph=graph, budget=budget, test_method=test_method, centrality_method="BETWEENNESS")
+        output <- centrality_influential(graph = graph, budget = budget, test_method = test_method, centrality_method = "BETWEENNESS")
       }
     } else if (heuristic == "ADAPTIVE_CENTRALITY") {
       if (centrality_method == "DEGREE") {
-        output <- adaptive_centrality_influential(graph=graph, budget=budget, test_method=test_method, centrality_method="DEGREE")
+        output <- adaptive_centrality_influential(graph = graph, budget = budget, test_method = test_method, centrality_method = "DEGREE")
       } else if (centrality_method == "BETWEENNESS") {
-        output <- adaptive_centrality_influential(graph=graph, budget=budget, test_method=test_method, centrality_method="BETWEENNESS")
+        output <- adaptive_centrality_influential(graph = graph, budget = budget, test_method = test_method, centrality_method = "BETWEENNESS")
       }
     } else if (heuristic == "ADAPTIVE_PAGERANK") {
-      output <- adaptive_pagerank_influential(graph=graph, budget=budget, test_method=test_method)
+      output <- adaptive_pagerank_influential(graph = graph, budget = budget, test_method = test_method)
     }
   }
   if (logging) {
@@ -77,8 +77,8 @@ influence <- function(graph, budget=1, prob=0.5, steps=1, optimal_solution=FALSE
 #' @import igraph
 #' @export
 #' @references Lipton, R. J., & Naughton, J. F. (1989). Estimating the size of generalized transitive closures. In Proceedings of the 15th Int. Conf. on Very Large Data Bases.
-adaptive_centrality_influential <- function(graph, budget=1, test_method=c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC"),
-                                   centrality_method=c("DEGREE", "BETWEENNESS", "CLOSENESS", "EIGENVECTOR")) {
+adaptive_centrality_influential <- function(graph, budget = 1, test_method = c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC"),
+                                            centrality_method = c("DEGREE", "BETWEENNESS", "CLOSENESS", "EIGENVECTOR")) {
   start <- as.numeric(Sys.time())
   # Preserve original graph as this object will be overwritten
   g <- graph
@@ -90,13 +90,13 @@ adaptive_centrality_influential <- function(graph, budget=1, test_method=c("RESI
   # Calculate the actual number of nodes to select
   for (i in 1:budget) {
     # Get the node with highest score
-    max_node <- which.max(get_centrality_scores(g, centrality_method=centrality_method))
+    max_node <- which.max(get_centrality_scores(g, centrality_method = centrality_method))
     inf <- c(inf, V(g)[max_node]$name)
     g <- delete.vertices(g, max_node)
     g <- largest_component(g)
 
     influential <- c(influential, V(graph)[as.numeric(inf)])
-    influence <- c(influence, get_influence(graph, influential, test_method=test_method))
+    influence <- c(influence, get_influence(graph, influential, test_method = test_method))
 
     # Break if the graph is already disconnected
     if (vcount(g) == 1) {
@@ -125,13 +125,13 @@ adaptive_centrality_influential <- function(graph, budget=1, test_method=c("RESI
 #' Freeman, L. C. (1977). A set of measures of centrality based on betweenness. Sociometry, 35-41.;
 #' Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social networks, 1(3), 215-239.
 #' }
-centrality_influential <- function(graph, budget=1, test_method=c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC"),
-                                   centrality_method=c("DEGREE", "BETWEENNESS", "CLOSENESS", "EIGENVECTOR")) {
+centrality_influential <- function(graph, budget = 1, test_method = c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC"),
+                                   centrality_method = c("DEGREE", "BETWEENNESS", "CLOSENESS", "EIGENVECTOR")) {
   start <- as.numeric(Sys.time())
   # Get Collective influence score of all nodes
-  centrality <- get_centrality_scores(graph, centrality_method=centrality_method)
+  centrality <- get_centrality_scores(graph, centrality_method = centrality_method)
 
-  x <- data.frame(centrality=centrality)
+  x <- data.frame(centrality = centrality)
   x$node_id <- rownames(x)
   # Get budget nodes
   influential <- vector()
@@ -140,7 +140,7 @@ centrality_influential <- function(graph, budget=1, test_method=c("RESILIENCE", 
   for (i in 1:budget) {
     inf <- tail(x[order(x$centrality),], i)$node_id
     influential <- c(influential, V(graph)[as.numeric(inf)])
-    influence <- c(influence, get_influence(graph, influential, test_method=test_method))
+    influence <- c(influence, get_influence(graph, influential, test_method = test_method))
   }
   end <- as.numeric(Sys.time())
   output <- NULL
@@ -159,11 +159,11 @@ centrality_influential <- function(graph, budget=1, test_method=c("RESILIENCE", 
 #' @import igraph utils
 #' @export
 #' @references Morone, F., & Makse, H. a. (2015). Influence maximization in complex networks through optimal percolation: supplementary information. Current Science, 93(1), 17–19.
-collective_influence_influential <- function(graph, budget=1, test_method=c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC")) {
+collective_influence_influential <- function(graph, budget = 1, test_method = c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC")) {
   start <- as.numeric(Sys.time())
   # Get Collective influence score of all nodes
-  ci <- sapply(V(graph), function(x) { collective_influence(graph, neighborhood_distance=2, x) })
-  x <- data.frame(ci=ci)
+  ci <- sapply(V(graph), function(x) { collective_influence(graph, neighborhood_distance = 2, x) })
+  x <- data.frame(ci = ci)
   x$node_id <- rownames(x)
   # Get budget nodes
 
@@ -173,7 +173,7 @@ collective_influence_influential <- function(graph, budget=1, test_method=c("RES
   for (i in 1:budget) {
     inf <- tail(x[order(x$ci),], i)$node_id
     influencial_nodes <- c(influencial_nodes, V(graph)[as.numeric(inf)])
-    influence <- c(influence, get_influence(graph, influencial_nodes, test_method=test_method))
+    influence <- c(influence, get_influence(graph, influencial_nodes, test_method = test_method))
   }
 
   end <- as.numeric(Sys.time())
@@ -193,19 +193,19 @@ collective_influence_influential <- function(graph, budget=1, test_method=c("RES
 #' @import igraph utils
 #' @export
 #' @references Page, L., Brin, S., Motwani, R., & Winograd, T. (1999). The PageRank Citation Ranking: Bringing Order to the Web.
-pagerank_influential <- function(graph, budget=1, test_method=c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC")) {
+pagerank_influential <- function(graph, budget = 1, test_method = c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC")) {
   start <- as.numeric(Sys.time())
   # Get Pagerank of all nodes
   pagerank <- page_rank(graph)$vector
   # Get budget nodes
   influential <- NULL
   influence <- NULL
-  for(i in 1:budget) {
-    x <- data.frame(pagerank=pagerank)
+  for (i in 1:budget) {
+    x <- data.frame(pagerank = pagerank)
     x$node_id <- rownames(x)
     inf <- tail(x[order(x$pagerank),], i)$node_id
     influential[i] <- V(graph)[as.numeric(inf)] # influential nodes
-    influence[i] <- get_influence(graph, influential, test_method=test_method) # size of the biggest giant component
+    influence[i] <- get_influence(graph, influential, test_method = test_method) # size of the biggest giant component
   }
   end <- as.numeric(Sys.time())
   output <- NULL
@@ -224,26 +224,26 @@ pagerank_influential <- function(graph, budget=1, test_method=c("RESILIENCE", "I
 #' @import igraph utils
 #' @export
 #' @references Page, L., Brin, S., Motwani, R., & Winograd, T. (1999). The PageRank Citation Ranking: Bringing Order to the Web.
-adaptive_pagerank_influential <- function(graph, budget=1, test_method=c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC"), centrality_method=c("DEGREE", "BETWEENNESS", "CLOSENESS", "EIGENVECTOR")) {
+adaptive_pagerank_influential <- function(graph, budget = 1, test_method = c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC"), centrality_method = c("DEGREE", "BETWEENNESS", "CLOSENESS", "EIGENVECTOR")) {
   start <- as.numeric(Sys.time())
   # Get Pagerank of all nodes
   # Get budget nodes
   g <- graph
   influential <- vector()
   influence <- vector()
-  for(i in 1:budget) {
+  for (i in 1:budget) {
     pagerank <- page_rank(g)$vector
-    x <- data.frame(pagerank=pagerank)
+    x <- data.frame(pagerank = pagerank)
 
-    max_node <- which.max(get_centrality_scores(g, centrality_method=centrality_method))
+    max_node <- which.max(get_centrality_scores(g, centrality_method = centrality_method))
 
     x$node_id <- rownames(x)
     inf <- tail(x[order(x$pagerank),], i)$node_id
     g <- delete.vertices(g, max_node)
     g <- largest_component(g)
 
-    influential <- c(influential, V(graph)[as.numeric(inf)])
-    influence <- c(influence, get_influence(graph, influential, test_method=test_method))
+    influential <- c(influential, V(graph)[inf])
+    influence <- c(influence, get_influence(graph, influential, test_method = test_method))
   }
   end <- as.numeric(Sys.time())
   output <- NULL
@@ -262,10 +262,10 @@ adaptive_pagerank_influential <- function(graph, budget=1, test_method=c("RESILI
 #' @import igraph utils
 #' @export
 #' @references Zhang, X., Zhu, J., Wang, Q., & Zhao, H. (2013). Identifying influential nodes in complex networks with community structure. Knowledge-Based Systems, 42.
-coreness_influential <- function(graph, budget=1, test_method=c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC")) {
+coreness_influential <- function(graph, budget = 1, test_method = c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC")) {
   start <- as.numeric(Sys.time())
   # Get coreness of all nodes
-  coreness <- graph.coreness(graph, mode="all")
+  coreness <- graph.coreness(graph, mode = "all")
 
   influential_nodes <- vector()
   influence <- vector()
@@ -275,13 +275,13 @@ coreness_influential <- function(graph, budget=1, test_method=c("RESILIENCE", "I
     inf <- V(graph)[which(coreness == max(coreness))]
     # If the number exceeds the given budget, then pick top degree nodes within influential
     if (length(inf) > i) {
-      x <- data.frame(degree=degree(graph, inf))
+      x <- data.frame(degree = degree(graph, inf))
       x$node_id <- rownames(x)
       # Get budget nodes
       inf <- tail(x[order(x$degree),], i)$node_id
     }
-    influential_nodes <- c(influential_nodes, V(graph)[as.numeric(inf)])
-    influence <- c(influence, get_influence(graph, influential_nodes, test_method=test_method))
+    influential_nodes <- c(influential_nodes, V(graph)[inf])
+    influence <- c(influence, get_influence(graph, influential_nodes, test_method = test_method))
   }
   end <- as.numeric(Sys.time())
   output <- NULL
@@ -300,10 +300,10 @@ coreness_influential <- function(graph, budget=1, test_method=c("RESILIENCE", "I
 #' @import igraph utils
 #' @export
 #' @references Zhang, X., Zhu, J., Wang, Q., & Zhao, H. (2013). Identifying influential nodes in complex networks with community structure. Knowledge-Based Systems, 42.
-coreness_degree_influential <- function(graph, budget=1, test_method=c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC")) {
+coreness_degree_influential <- function(graph, budget = 1, test_method = c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC")) {
   start <- as.numeric(Sys.time())
   # Get coreness of all nodes
-  coreness <- graph.coreness(graph, mode="all")
+  coreness <- graph.coreness(graph, mode = "all")
 
   influential_nodes <- vector()
   influence <- vector()
@@ -311,10 +311,10 @@ coreness_degree_influential <- function(graph, budget=1, test_method=c("RESILIEN
   # Get most core nodes
   for (i in 1:budget) {
     inf <- V(graph)[which(coreness == max(coreness))]
-    max_node <- which.max(get_centrality_scores(g, centrality_method=centrality_method))
+    max_node <- which.max(get_centrality_scores(g, centrality_method = centrality_method))
     inf <- c(inf, V(g)[max_node]$name)
     influential_nodes <- c(influential_nodes, V(graph)[as.numeric(inf)])
-    influence <- c(influence, get_influence(graph, output$influential_nodes, test_method=test_method))
+    influence <- c(influence, get_influence(graph, output$influential_nodes, test_method = test_method))
   }
   end <- as.numeric(Sys.time())
   output <- NULL
@@ -335,7 +335,7 @@ coreness_degree_influential <- function(graph, budget=1, test_method=c("RESILIEN
 #' @import igraph
 #' @export
 #' @references Kempe, D., Kleinberg, J., & Tardos, É. (2003). Maximizing the Spread of Influence through a Social Network. Proceedings of the Ninth ACM SIGKDD International Conference on Knowledge Discovery and Data Mining - KDD ’03, 137.
-greedy_influential <- function(graph, budget, prob=0.5, test_method) {
+greedy_influential <- function(graph, budget, prob = 0.5, test_method) {
   start <- as.numeric(Sys.time())
   # Save list of nodes
   influence <- 0
@@ -353,7 +353,7 @@ greedy_influential <- function(graph, budget, prob=0.5, test_method) {
     #print(setdiff(nodes, seed))
     for (node in setdiff(nodes, seed)) {
       # Find infuence of node with existing nodes in seed
-      current <- get_influence(graph, c(seed, node), test_method, lt_threshold=prob)
+      current <- get_influence(graph, c(seed, node), test_method, lt_threshold = prob)
       # If current node causes more influence than maximum so far, then swap
       if (current > max_influence) {
         most_influential <- node
@@ -369,7 +369,7 @@ greedy_influential <- function(graph, budget, prob=0.5, test_method) {
   end <- as.numeric(Sys.time())
   output$influential_nodes <- V(graph)[seed]
   output$time <- (end - start)
-  output$influence <- get_influence(graph, output$influential_nodes, test_method=test_method, lt_threshold=prob)
+  output$influence <- get_influence(graph, output$influential_nodes, test_method = test_method, lt_threshold = prob)
   output
 }
 
@@ -384,32 +384,34 @@ greedy_influential <- function(graph, budget, prob=0.5, test_method) {
 #' @import igraph iterpc foreach parallel
 #' @export
 #' @references Kempe, D., Kleinberg, J., & Tardos, É. (2003). Maximizing the Spread of Influence through a Social Network. Proceedings of the Ninth ACM SIGKDD International Conference on Knowledge Discovery and Data Mining - KDD ’03, 137.
-optimal_influential <- function(graph, budget, prob=0.5, test_method=c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC"), parallel=TRUE) {
+optimal_influential <- function(graph, budget, prob = 0.5, test_method = c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC"), parallel = TRUE) {
   start <- as.numeric(Sys.time())
   combinations <- getall(iterpc(vcount(graph), budget))
   # Add another column to store total spread
   combinations <- cbind(combinations, 0)
   if (parallel) {
-    if (requireNamespace("parallel", quietly=TRUE) && requireNamespace("snow", quietly=TRUE) && requireNamespace("doSNOW", quietly=TRUE)) {
+    if (requireNamespace("parallel", quietly = TRUE) &&
+      requireNamespace("snow", quietly = TRUE) &&
+      requireNamespace("doSNOW", quietly = TRUE)) {
       cores <- detectCores() - 1
       cl <- snow::makeCluster(cores)
       doSNOW::registerDoSNOW(cl)
       loginfo(paste("Calculating spread under", test_method))
       # foreach requires us to define each packages and function name used within it
-      spreads <- foreach (i = 1:nrow(combinations), .packages=c("igraph"), .export=c("get_influence", "simulate_ic", "simulate_lt")) %dopar% {
+      spreads <- foreach(i = 1:nrow(combinations), .packages = c("igraph"), .export = c("get_influence", "simulate_ic", "simulate_lt")) %dopar% {
         nodes <- combinations[i, 1:budget]
-        get_influence(graph, nodes, test_method, lt_threshold=prob)
+        get_influence(graph, nodes, test_method, lt_threshold = prob)
       }
-      combinations[,(budget + 1)] <- unlist(spreads)
+      combinations[, (budget + 1)] <- unlist(spreads)
       # Unregister cluster
       snow::stopCluster(cl)
     }
   }
   else {
     for (i in 1:nrow(combinations)) {
-      nodes <- combinations[i,1:budget]
+      nodes <- combinations[i, 1:budget]
       # Save spread to last column
-      combinations[i,(budget + 1)] <- get_influence(graph, nodes, test_method, lt_threshold=prob)
+      combinations[i, (budget + 1)] <- get_influence(graph, nodes, test_method, lt_threshold = prob)
     }
   }
   end <- as.numeric(Sys.time())
@@ -440,15 +442,15 @@ optimal_influential <- function(graph, budget, prob=0.5, test_method=c("RESILIEN
 #' @import igraph
 #' @export
 #' @references Leskovec, J., Krause, A., Guestrin, C., Faloutsos, C., VanBriesen, J., & Glance, N. (2007). Cost-effective Outbreak Detection in Networks. Proceedings of the 13th ACM SIGKDD International Conference on Knowledge Discovery and Data Mining - KDD ’07, 420–429.
-celf_greedy <- function(graph, budget=1, test_method) {
+celf_greedy <- function(graph, budget = 1, test_method) {
   seed <- c()
   # For each node, compute its influence independently and add maintain in a table, while setting the flag=0
   V(graph)$name <- 1:vcount(graph)
-  df <- data.frame(node=V(graph)$name, gain=0, flag=0)
+  df <- data.frame(node = V(graph)$name, gain = 0, flag = 0)
   # Save the start time
   start <- as.numeric(Sys.time())
   for (i in 1:vcount(graph)) {
-    df$gain[i] <- get_influence(graph, V(graph)[i], test_method=test_method, lt_threshold=prob)
+    df$gain[i] <- get_influence(graph, V(graph)[i], test_method = test_method, lt_threshold = prob)
   }
   # Arrange the data frame by marginal gains
   df <- arrange(df, desc(gain))
@@ -464,8 +466,8 @@ celf_greedy <- function(graph, budget=1, test_method) {
     }
     else {
       # Otherwise compute the marginal gain with this node
-      current_influence <- get_influence(graph, V(graph)[seed], test_method=test_method, lt_threshold=prob)
-      top_row$gain <- get_influence(graph, V(graph)[c(seed, u)], test_method=test_method, lt_threshold=prob) - current_influence
+      current_influence <- get_influence(graph, V(graph)[seed], test_method = test_method, lt_threshold = prob)
+      top_row$gain <- get_influence(graph, V(graph)[c(seed, u)], test_method = test_method, lt_threshold = prob) - current_influence
       # Store the length of seed in the flag
       top_row$flag <- length(seed)
       # Update the values for this row in data frame
@@ -474,11 +476,11 @@ celf_greedy <- function(graph, budget=1, test_method) {
       df <- arrange(df, desc(gain))
     }
   }
-  end <- as.numeric (Sys.time())
+  end <- as.numeric(Sys.time())
   output <- NULL
   output$influential_nodes <- V(graph)[seed]
   output$time <- (end - start)
-  output$influence <- get_influence(graph, output$influential_nodes, test_method=test_method, lt_threshold=prob)
+  output$influence <- get_influence(graph, output$influential_nodes, test_method = test_method, lt_threshold = prob)
   output
 }
 
@@ -492,20 +494,20 @@ celf_greedy <- function(graph, budget=1, test_method) {
 #' @import igraph
 #' @export
 #' @references Leskovec, J., Krause, A., Guestrin, C., Faloutsos, C., VanBriesen, J., & Glance, N. (2007). Cost-effective Outbreak Detection in Networks. Proceedings of the 13th ACM SIGKDD International Conference on Knowledge Discovery and Data Mining - KDD ’07, 420–429.
-celf_plus_plus <- function(graph, budget=1, test_method) {
+celf_plus_plus <- function(graph, budget = 1, test_method) {
   # For each node, compute its influence independently and add maintain in a table, while setting the flag=0
   V(graph)$name <- 1:vcount(graph)
   # Save the start time
   start <- as.numeric(Sys.time())
   # CELF++
   current_best <- NULL
-  df <- data.frame(node=c(), gain=c(), gain2=c(), previous_best=c(), flag=c())
+  df <- data.frame(node = c(), gain = c(), gain2 = c(), previous_best = c(), flag = c())
   # For each node in graph
   for (i in 1:vcount(graph)) {
     u <- V(graph)[i]
-    current <- data.frame(node=i)
+    current <- data.frame(node = i)
     # Calculate marginal gain of this node
-    current$gain <- get_influence(graph, u, test_method=test_method, lt_threshold=prob)
+    current$gain <- get_influence(graph, u, test_method = test_method, lt_threshold = prob)
     current$flag <- 0
     # Only for first iteration, when current_best is null, pick the first node
     if (is.null(current_best)) {
@@ -518,16 +520,16 @@ celf_plus_plus <- function(graph, budget=1, test_method) {
     # Previous best should be the node with max. marginal gain of all nodes evaluated before u
     current$previous_best <- current_best
     # Calculate the marginal gain of previous best seed with this node
-    inf_with_u <- get_influence(graph, V(graph)$name[c(current_best, u)], test_method=test_method, lt_threshold=prob)
-    inf_without_u <- get_influence(graph, V(graph)$name[current_best], test_method=test_method, lt_threshold=prob)
+    inf_with_u <- get_influence(graph, V(graph)$name[c(current_best, u)], test_method = test_method, lt_threshold = prob)
+    inf_without_u <- get_influence(graph, V(graph)$name[current_best], test_method = test_method, lt_threshold = prob)
     current$gain2 <- inf_with_u - inf_without_u
     # Add current to the data frame
     df <- rbind(df, current)
     # Rearrange the data frame by marginal gains
     df <- arrange(df, desc(gain))
     # Append the first
-    clean_df <- df[which(!df[,1] %in% current_best),]
-    current_best <- V(graph)[clean_df[1,1]]
+    clean_df <- df[which(!df[, 1] %in% current_best),]
+    current_best <- V(graph)[clean_df[1, 1]]
   }
   seed <- c()
   last_best <- NULL
@@ -546,18 +548,18 @@ celf_plus_plus <- function(graph, budget=1, test_method) {
     }
     # If the previous best is the last_seed then no need to recompute, pick the value from gain2
     if (top_row$previous_best == last_seed$name
-        & top_row$flag == length(seed) - 1) {
+      & top_row$flag == length(seed) - 1) {
       top_row$gain <- top_row$gain2
     } else {
       # Calculate marginal gain with u
-      inf_with_u <- get_influence(graph, V(graph)$name[c(seed, u)], test_method=test_method, lt_threshold=prob)
-      inf_without_u <- get_influence(graph, V(graph)$name[seed], test_method=test_method, lt_threshold=prob)
+      inf_with_u <- get_influence(graph, V(graph)$name[c(seed, u)], test_method = test_method, lt_threshold = prob)
+      inf_without_u <- get_influence(graph, V(graph)$name[seed], test_method = test_method, lt_threshold = prob)
       top_row$gain <- inf_with_u - inf_without_u
       top_row$previous_best <- current_best
 
       # Calculate marginal gain with u and previous best
-      inf_with_prev_best <- get_influence(graph, V(graph)$name[c(seed, top_row$previous_best, u)], test_method=test_method, lt_threshold=prob)
-      inf_without_prev_best <- get_influence(graph, V(graph)$name[c(seed, top_row$previous_best)], test_method=test_method, lt_threshold=prob)
+      inf_with_prev_best <- get_influence(graph, V(graph)$name[c(seed, top_row$previous_best, u)], test_method = test_method, lt_threshold = prob)
+      inf_without_prev_best <- get_influence(graph, V(graph)$name[c(seed, top_row$previous_best)], test_method = test_method, lt_threshold = prob)
       top_row$gain2 <- inf_with_prev_best - inf_without_prev_best
     }
     if (!is.null(current_best)) {
@@ -569,11 +571,11 @@ celf_plus_plus <- function(graph, budget=1, test_method) {
     df[1,] <- top_row
     df <- arrange(df, desc(gain))
   }
-  end <- as.numeric (Sys.time())
+  end <- as.numeric(Sys.time())
   output <- NULL
   output$influential_nodes <- V(graph)[seed]
   output$time <- (end - start)
-  output$influence <- get_influence(graph, output$influential_nodes, test_method=test_method, lt_threshold=prob)
+  output$influence <- get_influence(graph, output$influential_nodes, test_method = test_method, lt_threshold = prob)
   output
 }
 
@@ -611,12 +613,12 @@ influence_ic <- function(graph, seed, steps, prob) {
     for (v in seed) {
       # Select all neighbours of v, exempting nodes that have already been attempted
       neighbours <- setdiff(neighbors(G, v), attempted)
-      if(length(neighbours) == 0) {
+      if (length(neighbours) == 0) {
         next
       }
       # Store all nodes in active that had successful trial
       activated <- unlist(lapply(neighbours, function(neighbours)
-        if (runif(1) >= (1 - prob)) {neighbours}))
+        if (runif(1) >= (1 - prob)) { neighbours }))
       attempted <- unique(c(attempted, neighbours))
       active <- c(active, activated)
     }
@@ -624,7 +626,7 @@ influence_ic <- function(graph, seed, steps, prob) {
     #print(c("Active in step", t, "=", length(active)))
     influence <- influence + length(active)
   }
-  end <- as.numeric (Sys.time())
+  end <- as.numeric(Sys.time())
   # Summary
   output$influence <- influence
   output$time <- (end - start)
@@ -666,7 +668,7 @@ influence_lt <- function(graph, seed, steps, threshold) {
     }
     active <- NULL
     # Select all nodes having at least one neighbour in seed nodes
-    inactive <- unlist(lapply(seed, function(seed) {neighbors(G, seed)}))
+    inactive <- unlist(lapply(seed, function(seed) { neighbors(G, seed) }))
     # Remove nodes that have already been attempted
     inactive <- setdiff(inactive, attempted)
     # Filter duplicates
@@ -690,7 +692,7 @@ influence_lt <- function(graph, seed, steps, threshold) {
     activated <- c(activated, active)
     seed <- active
   }
-  end <- as.numeric (Sys.time())
+  end <- as.numeric(Sys.time())
   # Summary
   output$influence <- length(activated)
   output$time <- (end - start)
@@ -709,7 +711,7 @@ influence_lt <- function(graph, seed, steps, threshold) {
 #' }
 #' @import igraph
 #' @export
-ic_spread <- function (graph, seed, runs=100) {
+ic_spread <- function(graph, seed, runs = 100) {
   total <- 0
   for (i in 1:runs) {
     active <- NULL
@@ -738,7 +740,7 @@ ic_spread <- function (graph, seed, runs=100) {
 #' }
 #' @import igraph
 #' @export
-ic_spread_plus <- function (graph, seed, runs=100, best_node=0) {
+ic_spread_plus <- function(graph, seed, runs = 100, best_node = 0) {
   total <- 0
   for (i in 1:runs) {
     active <- NULL
@@ -794,7 +796,7 @@ simulate_ic <- function(graph, active) {
     }
     # Try to activate inactive neighbours according to the weight on edge
     for (j in 1:length(neighbour_nodes)) {
-      weight <- E(graph, P=c(node, neighbour_nodes[j]))$weight
+      weight <- E(graph, P = c(node, neighbour_nodes[j]))$weight
       if (runif(1) <= weight) {
         count <- count + 1
       }
@@ -812,7 +814,7 @@ simulate_ic <- function(graph, active) {
 #' @return output average spread
 #' @import igraph
 #' @export
-lt_spread <- function (graph, seed, runs=100) {
+lt_spread <- function(graph, seed, runs = 100) {
   total <- 0
   for (i in 1:runs) {
     active <- NULL
@@ -836,7 +838,7 @@ lt_spread <- function (graph, seed, runs=100) {
 #' @return number of nodes activated during simulation
 #' @import igraph
 #' @export
-simulate_lt <- function(graph, active, threshold=0.5) {
+simulate_lt <- function(graph, active, threshold = 0.5) {
   # Algorithm: given a weighted graph G and a set of active nodes V,
   # each inactive node in the graph gets a chance to be activated with the probability being the collective weights on its edges with active nodes.
   # If a coin toss with probability as the sum of weights of active neighbours is greater than given threshold, then the inactive node gets activated.
@@ -846,7 +848,7 @@ simulate_lt <- function(graph, active, threshold=0.5) {
   if (!is_weighted(graph)) {
     E(graph)$weight <- 0.5
   }
-  inactive <- unlist(lapply(active, function(active) {neighbors(graph, active)}))
+  inactive <- unlist(lapply(active, function(active) { neighbors(graph, active) }))
   inactive <- setdiff(inactive, active)
   for (u in inactive) {
     neighbours <- neighbors(graph, u)
@@ -877,13 +879,13 @@ simulate_lt <- function(graph, active, threshold=0.5) {
 #' }
 #' @import igraph
 #' @export
-get_influence <- function(graph, nodes, test_method=c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC"), lt_threshold=0.5) {
+get_influence <- function(graph, nodes, test_method = c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC"), lt_threshold = 0.5) {
   if (test_method == "RESILIENCE") {
     vcount(graph) - resilience(graph, nodes)
   } else if (test_method == "INFLUENCE_IC") {
     simulate_ic(graph, nodes)
   } else if (test_method == "INFLUENCE_LT") {
-    simulate_lt(graph, nodes, threshold=lt_threshold)
+    simulate_lt(graph, nodes, threshold = lt_threshold)
   }
 }
 
@@ -898,9 +900,9 @@ get_influence <- function(graph, nodes, test_method=c("RESILIENCE", "INFLUENCE_L
 #' @examples {collective_influence(graph=erdos.renyi.game(100, 0.2), neighborhood_distance=2, 1)}
 #' @import igraph
 #' @export
-collective_influence <- function(graph, neighborhood_distance, node_id, method=c("degree")) {
-  neighbors_at_distance <- neighborhood(graph, neighborhood_distance, nodes=node_id, mode="all")[[1]]
-  neighbors_at_distance_discount <- neighborhood(graph, neighborhood_distance - 1, nodes=node_id, mode="all")[[1]]
+collective_influence <- function(graph, neighborhood_distance, node_id, method = c("degree")) {
+  neighbors_at_distance <- neighborhood(graph, neighborhood_distance, nodes = node_id, mode = "all")[[1]]
+  neighbors_at_distance_discount <- neighborhood(graph, neighborhood_distance - 1, nodes = node_id, mode = "all")[[1]]
   # find all the nodes lying at given distance
   neighbors_only_at_distance <- setdiff(neighbors_at_distance, neighbors_at_distance_discount)
   # calculate the degree of all the nodes lying at distance
@@ -909,7 +911,7 @@ collective_influence <- function(graph, neighborhood_distance, node_id, method=c
   degree_sum <- as.vector(degrees)
   # subtract one from each degree, sum the result and return
   total_sum <- sum(degree_sum - 1)
-  node_degree <- (degree(graph,node_id)[[1]]) - 1
+  node_degree <- (degree(graph, node_id)[[1]]) - 1
   ans <- node_degree * total_sum
   ans
 }
@@ -926,7 +928,7 @@ h_index <- function(graph, node_id) {
   # Calculate the degree of this node
   node_degree <- degree(graph, node_id)
   # Fetch all the nodes in the neighborhood
-  node_neighbours <- neighborhood(graph, 1, nodes=node_id, mode="all")[[1]]
+  node_neighbours <- neighborhood(graph, 1, nodes = node_id, mode = "all")[[1]]
   # Fetch degrees of all neighbours
   neighbour_degrees <- degree(graph, node_neighbours)
   # Calculate minumum degree from neighbours
@@ -936,7 +938,7 @@ h_index <- function(graph, node_id) {
 }
 
 # Calculate coreness on every iteration rather than just before the 1st iteration
-core_hd_core_repeat <- function(graph, budget=1, test_method=c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC")) {
+core_hd_core_repeat <- function(graph, budget = 1, test_method = c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC")) {
   start <- as.numeric(Sys.time())
 
   V(graph)$name <- V(graph)
@@ -949,7 +951,7 @@ core_hd_core_repeat <- function(graph, budget=1, test_method=c("RESILIENCE", "IN
       # repeat coreness calculations to
       # make sure we have `0` 1-core nodes
 
-      coreness <- graph.coreness(graph, mode="all")
+      coreness <- graph.coreness(graph, mode = "all")
       min_core <- min(coreness)
 
       if (min_core != 1) {
@@ -959,12 +961,12 @@ core_hd_core_repeat <- function(graph, budget=1, test_method=c("RESILIENCE", "IN
       graph <- delete.vertices(graph, one_core)
     }
 
-    x <- data.frame(degree=degree(graph))
+    x <- data.frame(degree = degree(graph))
     x$node_id <- rownames(x)
     inf <- tail(x[order(x$degree),], i)$node_id
 
     influential <- c(influential, V(graph)[as.numeric(inf)])
-    influence <- c(influence, get_influence(graph, influential, test_method=test_method))
+    influence <- c(influence, get_influence(graph, influential, test_method = test_method))
 
     graph <- delete.vertices(graph, inf)
     graph <- largest_component(graph)
@@ -981,35 +983,45 @@ core_hd_core_repeat <- function(graph, budget=1, test_method=c("RESILIENCE", "IN
   output
 }
 
-core_hd <- function(graph, budget=1, test_method=c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC")) {
+core_hd <- function(graph, budget = 1, test_method = c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC")) {
   start <- as.numeric(Sys.time())
+
+  lc <- sapply(V(graph), function(x) { local_centrality(graph, neighborhood_distance = 2, x) })
+  y <- data.frame(lc = lc)
+  y$node_id <- rownames(y)
 
   V(graph)$name <- V(graph)
   influential <- vector()
   influence <- vector()
 
-    repeat {
+  repeat {
 
-      # repeat coreness calculations to
-      # make sure we have `0` 1-core nodes
+    # repeat coreness calculations to
+    # make sure we have `0` 1-core nodes
 
-      coreness <- graph.coreness(graph, mode="all")
-      min_core <- min(coreness)
+    coreness <- graph.coreness(graph, mode = "all")
+    min_core <- min(coreness)
 
-      if (min_core != 1) {
-        break
-      }
-      one_core <- V(graph)[which(coreness == min_core)]
-      graph <- delete.vertices(graph, one_core)
+    if (min_core != 1) {
+      break
     }
+    one_core <- V(graph)[which(coreness == min_core)]
+    graph <- delete.vertices(graph, one_core)
+  }
+
+  lc <- sapply(V(graph), function(x) { local_centrality(graph, neighborhood_distance = 2, x) })
+  z <- data.frame(lc = lc)
+  z$node_id <- rownames(z)
+  print(z)
 
   for (i in 1:budget) {
-    x <- data.frame(degree=degree(graph))
-    x$node_id <- rownames(x)
+    x <- data.frame(degree = degree(graph))
+    # lc <- sapply(V(graph), function(x) { local_centrality(graph, neighborhood_distance = 2, x) })
+    x$node_id <- rownames(x) #data.frame(lc = lc)
     inf <- tail(x[order(x$degree),], i)$node_id
 
-    influential <- c(influential, V(graph)[as.numeric(inf)])
-    influence <- c(influence, get_influence(graph, influential, test_method=test_method))
+    influential <- c(influential, V(graph)[inf])
+    influence <- c(influence, get_influence(graph, influential, test_method = test_method))
 
     graph <- delete.vertices(graph, inf)
     graph <- largest_component(graph)
@@ -1026,52 +1038,125 @@ core_hd <- function(graph, budget=1, test_method=c("RESILIENCE", "INFLUENCE_LT",
   output
 }
 
-gnd <- function(graph, budget=1, test_method=c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC")) {
+gnd <- function(graph, budget = 1, test_method = c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC")) {
   start <- as.numeric(Sys.time())
 
   influence <- vector()
   influential <- vector()
 
-
-  influentialNodes <- c(
-    c('497', '1239', '286', '212', '129', '866', '35'),
-    c('1348', '941', '1296', '94', '777', '1237', '904', '1230'),
-    c('32', '41', '1315', '256', '42', '243', '1137', '903', '12', '899', '1299', '1126', '1019', '318', '655', '333', '696', '1424', '122', '564', '833', '163', '217', '900')
-  )
-
-  budget_1 <- c('497', '1239', '286', '212', '129', '866', '35')
-  budget_2 <- c('1348', '941', '1296', '94', '777', '1237', '904', '1230')
-  budget_3 <- c('32', '41', '1315', '256', '42', '243', '1137', '903', '12', '899', '1299', '1126', '1019', '318', '655', '333', '696', '1424', '122', '564', '833', '163', '217', '900')
+  budget_1 <- c('SCL', 'MDE', 'BOG', 'CLO', 'NVA', 'CTG', 'MAD')
+  budget_2 <- c('YVA', 'THR', 'BJL', 'SAH', 'DUS', 'KIH', 'EVN', 'ASB')
+  budget_3 <- c('ORX', 'THE', 'OSL', 'GRU', 'SSA', 'PMW', 'LGW', 'MCP', 'VCP', 'CCM', 'BSB', 'CDG', 'JPA', 'BVB', 'SDU', 'NRT', 'POA', 'MAO', 'BEL', 'BWI', 'BOS', 'FLN', 'PLU', 'SLZ')
+  budget_4 <- c('CGB', 'CGH', 'REC', 'DUB', 'JFK', 'CWB', 'BNU')
+  budget_5 <- c('LDE', 'LRH', 'FDF', 'CPH', 'CFR', 'PAP', 'AMS', 'ORE', 'AGF', 'FNI', 'CAY', 'PTP', 'BRU', 'UIP', 'URO', 'ANE', 'LEH', 'LYS', 'NIT', 'CUF', 'RUN')
+  budget_6 <- c('VUP', 'SIN')
+  budget_7 <- c('GND', 'DTW', 'MAR', 'LIS', 'TOV', 'BLA', 'MSN', 'VLN', 'CCS')
+  budget_8 <- c('FRC', 'LDB', 'FOR', 'CAW', 'CXJ', 'FAO')
+  budget_9 <- c('KUL', 'KHI', 'CGQ', 'POM', 'IPH', 'PEN', 'CRP')
+  budget_10 <- c('TSR', 'SKP', 'SMV', 'RZE', 'PUY', 'ANK', 'TIA', 'SJJ')
+  budget_11 <- c('PNA', 'CAS', 'IAD', 'ABZ', 'PUF', 'LOS', 'TIP', 'DOH', 'PEK', 'BKO', 'RAI', 'OUA', 'ANR', 'XNA', 'TNG', 'KRT', 'HPR', 'LAD', 'ZCL', 'PER', 'CVG', 'CMF', 'AAL', 'EZE', 'ECN', 'SVQ', 'AVN', 'HKG', 'TNR', 'BLZ', 'SZX', 'CWL', 'UTC', 'RHE', 'BRN', 'MTY', 'CCU', 'SAT', 'AUR', 'ATH', 'PHL', 'BRS', 'SSG', 'MRU', 'ZAG', 'LPL', 'EIN', 'MEM', 'GCM', 'AAR', 'KLA', 'RTM', 'CMB', 'QAM', 'MVD', 'FIH', 'SIR', 'ABJ', 'NCY', 'MAN', 'DEN', 'IST', 'IAH', 'FOC', 'GVA', 'PTY', 'JED', 'DLA', 'MCT', 'AUH', 'BOU', 'ILG', 'SYD', 'CGN', 'FSZ', 'ATL', 'NAS', 'ADL', 'FNC', 'JNB', 'YAO', 'BJM', 'WLG', 'SDR', 'MIA', 'YVR', 'BIO', 'HUY', 'GIB', 'DAR', 'ARN', 'FJR', 'ALY', 'DXB', 'MSP', 'PIT', 'MEL', 'BLR', 'BLL', 'FBM', 'OMA', 'LAX', 'BWE', 'YYT', 'VCE', 'NTE', 'NAP', 'ZAZ', 'MUC', 'HAM', 'SVG', 'DAM', 'MCU', 'MAA', 'PHX', 'DMM', 'TLS', 'VAF', 'CGK', 'BKK', 'COO', 'LGG', 'TRN', 'KWI', 'BUD', 'CKY', 'YYZ', 'ORL', 'ALG', 'ACC', 'MDW', 'LBA', 'CRL', 'FRA', 'CAI', 'HRE', 'VGO', 'MPL', 'NCL', 'ICN', 'HEL', 'VIE', 'DEL', 'HAJ', 'GLA', 'TRS', 'LIL', 'BNE', 'MXP', 'YYC', 'AMM', 'BSL', 'HBA', 'MHG', 'HAG', 'LFW', 'GBE', 'KWA', 'MLE', 'BOD', 'EPK', 'BCN', 'BEY', 'RUH', 'PMO', 'FSD', 'NKC', 'TUN', 'DFW', 'OPO', 'GOA', 'BLQ', 'MEX', 'MLA', 'EDI', 'SVO', 'CBR', 'MPM', 'CPT', 'BDA', 'ZRH', 'MKC', 'MRS', 'QKA', 'AGA', 'NGO', 'LUX', 'GDL', 'KIX', 'CLT', 'FCO', 'DKR', 'JGB', 'BOM', 'BHX', 'CFE', 'NBO', 'ENS', 'CZL', 'BAH', 'TFS', 'DHA')
+  budget_12 <- c('KSF', 'NAT')
+  budget_13 <- c('STL', 'TPA', 'BDQ', 'GSO', 'IXW', 'BHM', 'BKI', 'IXM', 'LKO', 'HFD', 'BBI', 'RAJ', 'ISK', 'SXV', 'LBU', 'KCH', 'IDR', 'HYD', 'NAG', 'HBX', 'IXE', 'GYN', 'GSP', 'AMD', 'MST', 'STR', 'PNQ', 'SHA', 'SAN', 'NMB', 'JAI', 'PAT', 'DSM', 'MKE', 'KLH', 'BNA', 'BEP', 'FMO', 'CZM', 'CJB', 'LUH', 'BTU', 'COK', 'CPE', 'SFO', 'MDT', 'HSS', 'PRG', 'TRV', 'VTZ', 'TLV', 'RRK', 'GRR', 'RDU', 'IXC', 'GOI', 'IXU', 'FUK', 'KTU', 'MSY', 'CLE', 'ADD')
+  budget_14 <- c('VIT', 'VLC', 'LEI', 'OVD', 'EAS', 'KEF', 'CBG', 'ALC', 'LCG', 'ODB', 'EMA', 'AGP', 'GRX', 'SLM', 'XRY', 'VLL')
+  budget_15 <- c('ZUH', 'DAC', 'TPE', 'TXL', 'NUE')
+  budget_16 <- c('LAS', 'TYS', 'SGD', 'VIX')
+  budget_17 <- c('GOT', 'ASU', 'SPU', 'ROS', 'SJU', 'ABV', 'MJV', 'VIC', 'LPB', 'KWJ', 'CUN', 'LPA', 'FNT', 'PMI', 'RLG', 'LIM', 'ABC', 'AQP', 'RJL', 'SFN', 'CMH')
+  budget_18 <- c('GRQ')
+  budget_19 <- c('SDQ', 'BGI', 'CUR', 'YUL', 'DOM', 'PMF', 'PBM', 'MDZ', 'CTU', 'EBU')
+  budget_20 <- c('BAQ', 'SOB', 'SJO', 'LOV', 'VAP', 'BOO', 'SEA', 'LSC', 'PDX', 'ORK', 'RGA', 'TGU', 'UIO', 'YIH', 'TRD', 'SAL', 'GYE', 'ZOS', 'OST', 'DTM', 'GUA', 'SOF', 'VVI', 'BGO', 'NVT', 'YQM', 'TOS')
+  budget_21 <- c('DOK', 'BOJ', 'VSG', 'LED', 'HRK', 'IEV', 'OTP', 'KJK', 'BAK', 'SIP', 'LJU', 'TBS', 'ESS', 'ACH', 'LWO', 'LRA', 'QND', 'DNK', 'CEJ', 'WAW', 'DRS', 'SXB', 'ODS', 'TZL', 'RNS', 'VAR')
+  budget_22 <- c('PGF', 'LLA', 'EBJ', 'QPJ', 'FLR', 'CHA', 'HIJ', 'MKY', 'MLI', 'UME', 'LBN', 'BSH', 'YWG', 'QRO', 'APW', 'KTW', 'ETZ', 'CKG', 'AUF', 'POR', 'WUH', 'QBQ', 'SCN', 'ERF', 'TXN', 'LNZ', 'ATW', 'HFE', 'CUU', 'SVD', 'GDN', 'LBC', 'CAE', 'BWN', 'SJK', 'TUF', 'RIC', 'GLO', 'LME', 'TMP', 'SZG', 'HET', 'MNL', 'DAY', 'XBK', 'ORB', 'TKU', 'PUS', 'BUF', 'ODE', 'SLC', 'TAM', 'HUZ', 'CHC', 'MBX', 'CGO', 'SLU', 'GLT', 'SNN', 'KEL', 'AOI', 'BRE', 'OXF', 'SDF', 'MMJ', 'JAX', 'HYN', 'LCJ', 'YQB', 'HRB', 'RNB', 'JKG', 'YOW', 'PWM', 'BLK', 'SDL', 'BFS', 'BZE', 'QOX', 'BRQ', 'BLE', 'XMF', 'CRA', 'GNE', 'BES', 'KIJ', 'LRT', 'OKJ', 'FDH', 'AKL', 'KMG', 'GVX', 'RIX', 'HGH', 'CJJ', 'SWS', 'AGB', 'HNL', 'SYR', 'LPI', 'TNA', 'POZ', 'NTL', 'SLD', 'KLU', 'ROB', 'ZQN', 'PAD', 'ABX', 'ABY', 'DUR', 'GWY', 'WNZ', 'SOD', 'EXT', 'WUX', 'MMX', 'SOU', 'GRZ', 'IND', 'WRO', 'RNO', 'BJX', 'TUL', 'KRK', 'FMY', 'PZY', 'SGE', 'BTS', 'SMF', 'TLC', 'DRW', 'DUD', 'XMN', 'CCF', 'ELP', 'GCI', 'CER', 'DEB', 'TAE', 'LHW', 'YZY', 'OUL', 'QFB', 'TSN', 'GNB', 'ANG', 'JER', 'SBK', 'ROC', 'CAN', 'XIY', 'BVA', 'LUG', 'JGN', 'TAO', 'NCE', 'XUZ', 'NWI', 'ZWO', 'YEG', 'VRN')
+  budget_23 <- c('LDK', 'SDJ', 'SVX', 'YCU', 'HAD', 'MGL', 'KMQ', 'MXZ', 'KOW', 'SHE', 'PEG', 'ALA', 'SGN', 'CLJ', 'CZX', 'NBC', 'IOM', 'YNT', 'KHV', 'EKT', 'BZO', 'ULN', 'SEZ', 'MFM')
+  budget_24 <- c('KSD', 'KLV', 'PSA', 'PSR', 'LIG', 'AOC', 'CNG', 'KSC', 'TLL', 'ZCC', 'MOL', 'BZG', 'OSR', 'CEK', 'SZZ', 'LEJ', 'AAQ', 'VNO', 'LCA')
+  budget_25 <- c('WAT', 'UUS', 'KUO', 'KLF', 'KGD')
 
   seed <- NULL
   # nodes <- list(aa, bb, cc)
   for (i in 1:budget) {
     nodes <- NULL
-    if (i == 1) {
-      nodes <- budget_1
-    } else if (i == 2) {
-      nodes <- budget_2
-    } else if (i == 3) {
-      nodes <- budget_3
+    if (i == 1) { nodes <- budget_1
+    } else if (i == 2) { nodes <- budget_2
+    } else if (i == 3) { nodes <- budget_3
+    } else if (i == 4) { nodes <- budget_4
+    } else if (i == 5) { nodes <- budget_5
+    } else if (i == 6) { nodes <- budget_6
+    } else if (i == 7) { nodes <- budget_7
+    } else if (i == 8) { nodes <- budget_8
+    } else if (i == 9) { nodes <- budget_9
+    } else if (i == 10) { nodes <- budget_10
+    } else if (i == 11) { nodes <- budget_11
+    } else if (i == 12) { nodes <- budget_12
+    } else if (i == 13) { nodes <- budget_13
+    } else if (i == 14) { nodes <- budget_14
+    } else if (i == 15) { nodes <- budget_15
+    } else if (i == 16) { nodes <- budget_16
+    } else if (i == 17) { nodes <- budget_17
+    } else if (i == 18) { nodes <- budget_18
+    } else if (i == 19) { nodes <- budget_19
+    } else if (i == 20) { nodes <- budget_20
+    } else if (i == 21) { nodes <- budget_21
+    } else if (i == 22) { nodes <- budget_22
+    } else if (i == 23) { nodes <- budget_23
+    } else if (i == 24) { nodes <- budget_24
+    } else if (i == 25) { nodes <- budget_25
     }
 
     max_influence <- 0
     most_influential <- NULL
 
+    influencial_nodes <- vector()
+    influence <- vector()
+
     for (i in seq_along(nodes)) {
-      current <- get_influence(graph, c(seed, nodes[i]), test_method, lt_threshold=prob)
+      current <- get_influence(graph, c(seed, nodes[i]), test_method, lt_threshold = prob)
       if (current > max_influence) {
         most_influential <- nodes[i]
         max_influence <- current
       }
     }
     seed <- c(seed, most_influential)
+    influencial_nodes <- c(influencial_nodes, V(graph)[seed])
+    influence <- c(influence, get_influence(graph, influencial_nodes, test_method = test_method))
   }
 
   end <- as.numeric(Sys.time())
   output <- NULL
-  output$influential_nodes <- V(graph)[as.numeric(seed)]
+  output$influential_nodes <- influencial_nodes
   output$time <- (end - start)
-  output$influence <- get_influence(graph, output$influential_nodes, test_method=test_method, lt_threshold=prob)
+  output$influence <- influence
+  output
+}
+
+local_centrality <- function(graph, neighborhood_distance, node_id, method = c("degree")) {
+  neighbors_at_distance <- neighborhood(graph, neighborhood_distance, nodes = node_id, mode = "all")[[1]]
+  degrees <- degree(graph, neighbors_at_distance)
+  degree_sum <- as.vector(degrees)
+  total_sum <- sum(degree_sum - 1)
+  node_degree <- (degree(graph, node_id)[[1]]) - 1
+  ans <- node_degree * total_sum
+  ans
+}
+
+collective_local_centrality <- function(graph, budget = 1, neighborhood_distance, test_method = c("RESILIENCE", "INFLUENCE_LT", "INFLUENCE_IC")) {
+  start <- as.numeric(Sys.time())
+  lc <- sapply(V(graph), function(x) { local_centrality(graph, neighborhood_distance, x) })
+  x <- data.frame(lc = lc)
+  x$node_id <- rownames(x)
+  # Get budget nodes
+
+  influencial_nodes <- vector()
+  influence <- vector()
+
+  for (i in 1:budget) {
+    inf <- tail(x[order(x$lc),], i)$node_id
+    influencial_nodes <- c(influencial_nodes, V(graph)[inf])
+    influence <- c(influence, get_influence(graph, influencial_nodes, test_method = test_method))
+  }
+
+  end <- as.numeric(Sys.time())
+  output <- NULL
+  output$influential_nodes <- influencial_nodes
+  output$influence <- influence
+  output$time <- (end - start)
   output
 }

@@ -1,13 +1,14 @@
 Package: influence.mining
 Type: Package
 Title: Provides various methods for influence mining on Graphs
-Version: 0.2.4
-Authors@R: person(given = "Owais",
+Version: 0.2.5
+Authors@R: person(given = "Aamir",
            family = "Hussain",
            role = c("aut", "cre"),
-           email = "owaishussain@outlook.com",
-           comment = c(ORCID = "0000-0002-5449-1867", Researchgate = "https://www.researchgate.net/profile/Owais_Hussain"))
-Maintainer: Owais Hussain <owaishussain@outlook.com>
+           email = "s.shah.23242@khi.iba.edu.pk",
+           )
+Extended: influence.mining:0.24.4 <owaishussain@outlook.com>
+Maintainer: Aamir Hussain <s.shah.23242@khi.iba.edu.pk>
 Description: This package uses igraph library to provide influence mining features on graph data.
 License: GPL-3
 Encoding: UTF-8
